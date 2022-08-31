@@ -20,6 +20,8 @@ namespace AdOneSDK.CrossAdv
         [System.NonSerialized]
         public List<string> PathVideoLocal = new List<string>();
         [System.NonSerialized]
+        public List<string> UrlVideoValid = new List<string>();
+        [System.NonSerialized]
         public List<Sprite> Sprites = new List<Sprite>();
 
         public override string ToString()

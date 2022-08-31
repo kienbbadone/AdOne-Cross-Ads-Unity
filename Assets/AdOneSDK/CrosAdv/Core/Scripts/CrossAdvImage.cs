@@ -17,13 +17,13 @@ namespace AdOneSDK.CrossAdv
         {
             CrossAdv.ShowImage(this);
         }
-        float curcool = 2f;
+        float curcool = 3f;
         private void Update()
         {
             curcool -= Time.deltaTime;
             if (curcool <= 0f)
             {
-                curcool = 2f;
+                curcool = 3f;
 
                 CrossAdv.ShowImage(this);
             }

@@ -9,7 +9,6 @@ namespace AdOneSDK.CrossAdv
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Startup()
         {
-            Debug.LogError(Application.identifier);
             GameObject adv = new GameObject("AdOneAdv");
             adv.AddComponent<CrossAdv>();
             GameObject.DontDestroyOnLoad(adv);

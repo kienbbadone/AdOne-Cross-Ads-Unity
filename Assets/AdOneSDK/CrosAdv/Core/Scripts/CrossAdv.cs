@@ -13,8 +13,6 @@ namespace AdOneSDK.CrossAdv
     {
         public static List<CrossAdvRespondData> CrossAdvData;
 
-        public static CrossAdvRespondData DefaultAdvData;
-
         private static bool fetchDone;
         private static CrossAdv Instance;
         private void Awake()
@@ -33,18 +31,6 @@ namespace AdOneSDK.CrossAdv
             {
                 Directory.CreateDirectory($"{Application.persistentDataPath}/AdOneCrossAdv/Video/");
             }
-
-            DefaultAdvData = new CrossAdvRespondData()
-            {
-                id = -1,
-                app_key = Application.identifier,
-                platform = "default platform",
-                title = Application.productName,
-                description = "default desc",
-                button_text = "Play",
-                creative_video = new List<string>() { },
-                creative_image = new List<string>() { }
-            };
 
             StartCoroutine(FetchMediaFiles());
         }
@@ -65,24 +51,45 @@ namespace AdOneSDK.CrossAdv
             }
 
             var adv = CrossAdvData[Random.Range(0, CrossAdvData.Count)];
-
+            string clickUrl =
+#if UNITY_ANDROID
+            $"https://play.google.com/store/apps/details?id={adv.app_key}";
+#elif UNITY_IOS
+            $"https://apps.apple.com/app/find-people/id{adv.app_key}";
+#endif
+            targetPlayer.btn_AdClick.onClick.RemoveAllListeners();
+            targetPlayer.btn_AdClick.onClick.AddListener(() =>
+            {
+                Application.OpenURL(clickUrl);
+            });
+            bool canPlayFromRespond = false;
             targetPlayer.player.Stop();
+            targetPlayer.player.source = VideoSource.Url;
             switch (targetPlayer.source)
             {
                 case VideoSource.Url:
                     {
-                        targetPlayer.player.source = VideoSource.Url;
-                        if(adv.creative_video.Count > 0)
-                            targetPlayer.player.url = adv.creative_video[Random.Range(0, adv.creative_video.Count)];
+                        if (adv.UrlVideoValid.Count > 0)
+                        {
+                            targetPlayer.player.url = adv.UrlVideoValid[Random.Range(0, adv.UrlVideoValid.Count)];
+                            canPlayFromRespond = true;
+                        }                           
                     }
                     break;
                 case VideoSource.VideoClip:
                     {
-                        targetPlayer.player.source = VideoSource.Url;
                         if (adv.PathVideoLocal.Count > 0)
+                        {
                             targetPlayer.player.url = adv.PathVideoLocal[Random.Range(0, adv.PathVideoLocal.Count)];
+                            canPlayFromRespond = true;
+                        }                            
                     }
                     break;
+            }
+            if (canPlayFromRespond == false)
+            {
+                targetPlayer.player.source = VideoSource.VideoClip;
+                targetPlayer.player.clip = Resources.Load<VideoClip>("video_default");
             }
             targetPlayer.player.Play();
         }
@@ -94,8 +101,10 @@ namespace AdOneSDK.CrossAdv
                 yield return null;
             }
             var adv = CrossAdvData[Random.Range(0, CrossAdvData.Count)];
-            if(adv.Sprites.Count > 0)
+            if (adv.Sprites.Count > 0)
                 targetImg.img_Target.sprite = adv.Sprites[Random.Range(0, adv.Sprites.Count)];
+            else
+                targetImg.img_Target.sprite = Resources.Load<Sprite>("texture_default");
             targetImg.txt_Button.text = adv.button_text;
             targetImg.txt_Name.text = adv.title;
             string clickUrl =
@@ -104,6 +113,7 @@ namespace AdOneSDK.CrossAdv
 #elif UNITY_IOS
             $"https://apps.apple.com/app/find-people/id{adv.app_key}";
 #endif
+            targetImg.btn_AdClick.onClick.RemoveAllListeners();
             targetImg.btn_AdClick.onClick.AddListener(() =>
             {
                 Application.OpenURL(clickUrl);
@@ -181,12 +191,11 @@ namespace AdOneSDK.CrossAdv
                     {
                         case UnityWebRequest.Result.ConnectionError:
                         case UnityWebRequest.Result.DataProcessingError:
+                        case UnityWebRequest.Result.ProtocolError:
                             Debug.Log("Error while Receiving: " + www.error);
                             break;
                         case UnityWebRequest.Result.Success:
                             {
-                                Debug.Log("Success");
-
                                 //Load Image
                                 Texture2D texture2d = DownloadHandlerTexture.GetContent(www);
                                 var sprite = Sprite.Create(texture2d, new Rect(0, 0, texture2d.width, texture2d.height), Vector2.zero);
@@ -213,6 +222,7 @@ namespace AdOneSDK.CrossAdv
                     {
                         case UnityWebRequest.Result.ConnectionError:
                         case UnityWebRequest.Result.DataProcessingError:
+                        case UnityWebRequest.Result.ProtocolError:
                             Debug.Log("Error while Receiving: " + www.error);
                             break;
                         case UnityWebRequest.Result.Success:
@@ -222,6 +232,7 @@ namespace AdOneSDK.CrossAdv
                                 string localPath = $"{Application.persistentDataPath}/AdOneCrossAdv/Video/{fileName}";
                                 File.WriteAllBytes(localPath, www.downloadHandler.data);
                                 adv.PathVideoLocal.Add(localPath);
+                                adv.UrlVideoValid.Add(url);
                             }
                             break;
                     }
