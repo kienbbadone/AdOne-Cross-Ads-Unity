@@ -6,7 +6,7 @@ namespace AdOneSDK.CrossAdv
 {
     public static class CrossAdvStartup
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Startup()
         {
             GameObject adv = new GameObject("AdOneAdv");

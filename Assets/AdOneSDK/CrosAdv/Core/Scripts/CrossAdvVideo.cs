@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 namespace AdOneSDK.CrossAdv
 {
+    [RequireComponent(typeof(Button))]
     [RequireComponent(typeof(VideoPlayer))]
     public class CrossAdvVideo : MonoBehaviour
     {
@@ -14,18 +15,16 @@ namespace AdOneSDK.CrossAdv
         [OnValueChanged("OnChangeSource")]
 #endif
         public VideoSource source;
-        public Button btn_AdClick;
+        public Button btn_AdClick { get; private set; }
         public VideoPlayer player { get; private set;}
         private void Awake()
         {
+            btn_AdClick = GetComponent<Button>();
             player = GetComponent<VideoPlayer>();
-            //player.audioOutputMode = VideoAudioOutputMode.None;
-            //player.aspectRatio = VideoAspectRatio.FitInside;
-            //player.renderMode = VideoRenderMode.RenderTexture;
         }
         private void Start()
         {
-            CrossAdv.ShowVideo(this);
+            CrossAdv.Instance.ShowVideo(this);
         }
 
 #if UNITY_EDITOR

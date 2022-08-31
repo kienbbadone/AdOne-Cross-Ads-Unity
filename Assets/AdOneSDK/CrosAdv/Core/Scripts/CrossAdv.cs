@@ -14,7 +14,7 @@ namespace AdOneSDK.CrossAdv
         public static List<CrossAdvRespondData> CrossAdvData;
 
         private static bool fetchDone;
-        private static CrossAdv Instance;
+        public static CrossAdv Instance;
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -34,14 +34,14 @@ namespace AdOneSDK.CrossAdv
 
             StartCoroutine(FetchMediaFiles());
         }
-        public static void ShowImage(CrossAdvImage targetImg)
+        public void ShowImage(CrossAdvImage targetImg)
         {
-            Instance.StartCoroutine(Instance.RoutineShowImage(targetImg));
+            StartCoroutine(RoutineShowImage(targetImg));
         }
 
-        internal static void ShowVideo(CrossAdvVideo player)
+        internal void ShowVideo(CrossAdvVideo player)
         {
-            Instance.StartCoroutine(Instance.RoutineShowVideo(player));
+            StartCoroutine(RoutineShowVideo(player));
         }
         IEnumerator RoutineShowVideo(CrossAdvVideo targetPlayer)
         {
