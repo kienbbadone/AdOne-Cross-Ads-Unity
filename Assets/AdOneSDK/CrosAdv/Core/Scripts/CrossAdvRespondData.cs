@@ -15,9 +15,16 @@ namespace AdOneSDK.CrossAdv
         public List<string> creative_video;
         public List<string> creative_image;
 
+        [System.NonSerialized]
+        public List<string> PathImageLocal = new List<string>();
+        [System.NonSerialized]
+        public List<string> PathVideoLocal = new List<string>();
+        [System.NonSerialized]
+        public List<Sprite> Sprites = new List<Sprite>();
+
         public override string ToString()
         {
             return JsonUtility.ToJson(this);
-        }
+        }        
     }
 }

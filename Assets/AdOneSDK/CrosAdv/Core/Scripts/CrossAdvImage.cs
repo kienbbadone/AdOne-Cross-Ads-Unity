@@ -9,10 +9,13 @@ namespace AdOneSDK.CrossAdv
     public class CrossAdvImage : MonoBehaviour
     {
         public Image img_Target;
+        public Text txt_Button;
+        public Text txt_Name;
+        public Button btn_AdClick;
 
         private void Start()
         {
-            CrossAdv.ShowImage(this.img_Target);
+            CrossAdv.ShowImage(this);
         }
         float curcool = 2f;
         private void Update()
@@ -22,7 +25,7 @@ namespace AdOneSDK.CrossAdv
             {
                 curcool = 2f;
 
-                CrossAdv.ShowImage(this.img_Target);
+                CrossAdv.ShowImage(this);
             }
         }
     }

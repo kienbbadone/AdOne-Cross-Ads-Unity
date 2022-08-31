@@ -6,7 +6,7 @@ namespace AdOneSDK.CrossAdv
     public class CrossAdvRespondInfo
     {
         public string bundle;
-        public string platform;
+        public string platform;        
 
         public override string ToString()
         {

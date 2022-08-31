@@ -9,15 +9,11 @@ using UnityEngine.Video;
 
 namespace AdOneSDK.CrossAdv
 {
-    public class CrossAdv : MonoBehaviour
+    public partial class CrossAdv : MonoBehaviour
     {
-        public static List<string> urlImage = new List<string>();
-        public static List<string> urlVideo = new List<string>();
+        public static List<CrossAdvRespondData> CrossAdvData;
 
-        public static List<string> pathImageLocal = new List<string>();
-        public static List<string> pathVideoLocal = new List<string>();
-
-        public static List<Sprite> loadedSprites = new List<Sprite>();
+        public static CrossAdvRespondData DefaultAdvData;
 
         private static bool fetchDone;
         private static CrossAdv Instance;
@@ -37,13 +33,22 @@ namespace AdOneSDK.CrossAdv
             {
                 Directory.CreateDirectory($"{Application.persistentDataPath}/AdOneCrossAdv/Video/");
             }
-        }
-        void Start()
-        {
+
+            DefaultAdvData = new CrossAdvRespondData()
+            {
+                id = -1,
+                app_key = Application.identifier,
+                platform = "default platform",
+                title = Application.productName,
+                description = "default desc",
+                button_text = "Play",
+                creative_video = new List<string>() { },
+                creative_image = new List<string>() { }
+            };
+
             StartCoroutine(FetchMediaFiles());
         }
-
-        public static void ShowImage(UnityEngine.UI.Image targetImg)
+        public static void ShowImage(CrossAdvImage targetImg)
         {
             Instance.StartCoroutine(Instance.RoutineShowImage(targetImg));
         }
@@ -59,37 +64,56 @@ namespace AdOneSDK.CrossAdv
                 yield return null;
             }
 
+            var adv = CrossAdvData[Random.Range(0, CrossAdvData.Count)];
+
             targetPlayer.player.Stop();
             switch (targetPlayer.source)
             {
                 case VideoSource.Url:
                     {
                         targetPlayer.player.source = VideoSource.Url;
-                        targetPlayer.player.url = "https://cdn.onepad.com/video/Video4.mp4";// urlVideo[Random.Range(0, urlVideo.Count)];
+                        if(adv.creative_video.Count > 0)
+                            targetPlayer.player.url = adv.creative_video[Random.Range(0, adv.creative_video.Count)];
                     }
                     break;
                 case VideoSource.VideoClip:
                     {
                         targetPlayer.player.source = VideoSource.Url;
-                        targetPlayer.player.url = $"{Application.persistentDataPath}/AdOneCrossAdv/Video/Video4.mp4";// pathVideoLocal[Random.Range(0, pathVideoLocal.Count)];
+                        if (adv.PathVideoLocal.Count > 0)
+                            targetPlayer.player.url = adv.PathVideoLocal[Random.Range(0, adv.PathVideoLocal.Count)];
                     }
                     break;
             }
             targetPlayer.player.Play();
         }
 
-        IEnumerator RoutineShowImage(Image targetImg)
+        IEnumerator RoutineShowImage(CrossAdvImage targetImg)
         {
             while (fetchDone == false)
             {
                 yield return null;
             }
-            targetImg.sprite = loadedSprites[Random.Range(0, loadedSprites.Count)];
+            var adv = CrossAdvData[Random.Range(0, CrossAdvData.Count)];
+            if(adv.Sprites.Count > 0)
+                targetImg.img_Target.sprite = adv.Sprites[Random.Range(0, adv.Sprites.Count)];
+            targetImg.txt_Button.text = adv.button_text;
+            targetImg.txt_Name.text = adv.title;
+            string clickUrl =
+#if UNITY_ANDROID
+            $"https://play.google.com/store/apps/details?id={adv.app_key}";
+#elif UNITY_IOS
+            $"https://apps.apple.com/app/find-people/id{adv.app_key}";
+#endif
+            targetImg.btn_AdClick.onClick.AddListener(() =>
+            {
+                Application.OpenURL(clickUrl);
+            });
         }
 
         IEnumerator FetchMediaFiles()
         {
             fetchDone = false;
+
             string bundleId = Application.identifier;
             string platform = "unknown";
             switch (Application.platform)
@@ -125,25 +149,28 @@ namespace AdOneSDK.CrossAdv
                     case UnityWebRequest.Result.Success:
                         Debug.Log(pages[page] + ":\nReceived: " + webRequest.downloadHandler.text);
                         var respond = JsonUtility.FromJson<CrossAdvRespondModel>(webRequest.downloadHandler.text);
-                        urlImage = respond.data.SelectMany(x => x.creative_image).ToList();
-                        urlVideo = respond.data.SelectMany(x => x.creative_video).ToList();
-                        for (int i = 0; i < urlImage.Count; i++)
+                        CrossAdvData = respond.data;
+                        if (CrossAdvData == null || CrossAdvData.Count == 0)
                         {
-                            yield return StartCoroutine(DownloadImage(urlImage[i]));
+                            fetchDone = true;
+                            yield break;
                         }
-                        yield return StartCoroutine(DownloadVideo("https://cdn.onepad.com/video/Video4.mp4"));
-                        //for (int i = 0; i < urlVideo.Count; i++)
-                        //{
-                        //    yield return StartCoroutine(DownloadVideo(urlVideo[i]));
-                        //}
+                        for (int i = 0; i < CrossAdvData.Count; i++)
+                        {
+                            yield return StartCoroutine(FetchAdvMedia(CrossAdvData[i]));
+                        }
                         break;
                 }
 
                 fetchDone = true;
             }
+        }
 
-            IEnumerator DownloadImage(string url)
+        IEnumerator FetchAdvMedia(CrossAdvRespondData adv)
+        {
+            for (int i = 0; i < adv.creative_image.Count; i++)
             {
+                string url = adv.creative_image[i];
                 string fileName = url.Split('/').Last();
                 using (var www = UnityWebRequestTexture.GetTexture(url))
                 {
@@ -163,18 +190,19 @@ namespace AdOneSDK.CrossAdv
                                 //Load Image
                                 Texture2D texture2d = DownloadHandlerTexture.GetContent(www);
                                 var sprite = Sprite.Create(texture2d, new Rect(0, 0, texture2d.width, texture2d.height), Vector2.zero);
-                                loadedSprites.Add(sprite);
+                                adv.Sprites.Add(sprite);
                                 string localPath = $"{Application.persistentDataPath}/AdOneCrossAdv/Image/{fileName}";
                                 File.WriteAllBytes(localPath, texture2d.GetRawTextureData());
-                                pathImageLocal.Add(localPath);
+                                adv.PathImageLocal.Add(localPath);
                             }
                             break;
                     }
                 }
             }
 
-            IEnumerator DownloadVideo(string url)
+            for (int i = 0; i < adv.creative_video.Count; i++)
             {
+                string url = adv.creative_video[i];
                 string fileName = url.Split('/').Last();
                 using (var www = UnityWebRequest.Get(url))
                 {
@@ -193,7 +221,7 @@ namespace AdOneSDK.CrossAdv
 
                                 string localPath = $"{Application.persistentDataPath}/AdOneCrossAdv/Video/{fileName}";
                                 File.WriteAllBytes(localPath, www.downloadHandler.data);
-                                pathVideoLocal.Add(localPath);
+                                adv.PathVideoLocal.Add(localPath);
                             }
                             break;
                     }
