@@ -1,3 +1,4 @@
+using NaughtyAttributes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ namespace AdOneSDK.CrossAdv
     [RequireComponent(typeof(Renderer))]
     public class CrossAdvImageMesh : MonoBehaviour, ICrossAdPresenter
     {
+        bool ShowSuccess;
         Material mat;
         static readonly int materialTextureHash = Shader.PropertyToID("_MainTex");
         private void Awake()
@@ -22,6 +24,7 @@ namespace AdOneSDK.CrossAdv
         {
             if (arg0 == this)
             {
+                ShowSuccess = true;
             }
         }
 
@@ -32,11 +35,29 @@ namespace AdOneSDK.CrossAdv
             }
         }
 
+        [Button]
         private void Start()
         {
             CrossAdv.Instance.ShowImage(this);
+            StartCoroutine(TryToShow());
         }
+        IEnumerator TryToShow()
+        {
+            float currentTryCooldown = 3f;
+            int tryCount = 0;
+            while (ShowSuccess == false)
+            {
+                yield return null;
+                currentTryCooldown -= Time.deltaTime;
+                if (currentTryCooldown < 0f)
+                {
+                    currentTryCooldown = 3f + tryCount * 3f;
+                    tryCount++;
 
+                    CrossAdv.Instance.ShowImage(this);
+                }
+            }
+        }
         internal void SetTexture(Texture texture)
         {
             mat.SetTexture(materialTextureHash, texture);

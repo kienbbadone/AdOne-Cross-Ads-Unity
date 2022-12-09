@@ -13,6 +13,7 @@ namespace AdOneSDK.CrossAdv
     [RequireComponent(typeof(CanvasGroup))]
     public class CrossAdvVideoUI : MonoBehaviour, ICrossAdPresenter
     {
+        bool ShowSuccess;
         public Button btn_AdClick { get; private set; }
         public VideoPlayer player { get; private set; }
         public CanvasGroup can_show { get; private set; }
@@ -47,6 +48,25 @@ namespace AdOneSDK.CrossAdv
         private void Start()
         {
             CrossAdv.Instance.ShowVideo(this);
+            StartCoroutine(TryToShow());
+        }
+
+        IEnumerator TryToShow()
+        {
+            float currentTryCooldown = 3f;
+            int tryCount = 0;
+            while (ShowSuccess == false)
+            {
+                yield return null;
+                currentTryCooldown -= Time.deltaTime;
+                if (currentTryCooldown < 0f)
+                {
+                    currentTryCooldown = 3f + tryCount * 3f;
+                    tryCount++;
+
+                    CrossAdv.Instance.ShowVideo(this);
+                }
+            }
         }
 
         private void OnShowAdsSuccess(ICrossAdPresenter arg0)
@@ -56,6 +76,7 @@ namespace AdOneSDK.CrossAdv
                 can_show.alpha = 1f;
                 can_show.blocksRaycasts = true;
                 can_show.interactable = true;
+                ShowSuccess = true;
             }
         }
 

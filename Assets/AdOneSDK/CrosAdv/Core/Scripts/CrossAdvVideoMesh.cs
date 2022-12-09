@@ -12,6 +12,7 @@ namespace AdOneSDK.CrossAdv
     [RequireComponent(typeof(VideoPlayer))]
     public class CrossAdvVideoMesh : MonoBehaviour, ICrossAdPresenter
     {
+        bool ShowSuccess;
         public VideoPlayer player { get; private set; }
 
         private void Awake()
@@ -35,15 +36,36 @@ namespace AdOneSDK.CrossAdv
             source.Play();
         }
 
+        [Button]
         private void Start()
         {
             CrossAdv.Instance.ShowVideo(this);
+            StartCoroutine(TryToShow());
+        }
+        
+        IEnumerator TryToShow()
+        {
+            float currentTryCooldown = 3f;
+            int tryCount = 0;
+            while (ShowSuccess == false)
+            {
+                yield return null;
+                currentTryCooldown -= Time.deltaTime;
+                if (currentTryCooldown < 0f)
+                {
+                    currentTryCooldown = 3f + tryCount * 3f;
+                    tryCount++;
+
+                    CrossAdv.Instance.ShowVideo(this);
+                }
+            }
         }
 
         private void OnShowAdsSuccess(ICrossAdPresenter arg0)
         {
             if (arg0 == this)
             {
+                ShowSuccess = true;
             }
         }
 
@@ -51,6 +73,7 @@ namespace AdOneSDK.CrossAdv
         {
             if (arg0 == this)
             {
+
             }
         }
     }

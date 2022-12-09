@@ -11,6 +11,7 @@ namespace AdOneSDK.CrossAdv
     [RequireComponent(typeof(Button))]
     public class CrossAdvImageUI : MonoBehaviour, ICrossAdPresenter
     {
+        bool ShowSuccess;
         public Image img_Target;
         public Text txt_Button;
         public Text txt_Name;
@@ -36,6 +37,7 @@ namespace AdOneSDK.CrossAdv
                 can_show.alpha = 1f;
                 can_show.blocksRaycasts = true;
                 can_show.interactable = true;
+                ShowSuccess = true;
             }
         }
 
@@ -52,6 +54,25 @@ namespace AdOneSDK.CrossAdv
         private void Start()
         {
             CrossAdv.Instance.ShowImage(this);
+
+            StartCoroutine(TryToShow());
+        }
+        IEnumerator TryToShow()
+        {
+            float currentTryCooldown = 3f;
+            int tryCount = 0;
+            while (ShowSuccess == false)
+            {
+                yield return null;
+                currentTryCooldown -= Time.deltaTime;
+                if (currentTryCooldown < 0f)
+                {
+                    currentTryCooldown = 3f + tryCount * 3f;
+                    tryCount++;
+
+                    CrossAdv.Instance.ShowImage(this);
+                }
+            }
         }
         float curcool = 3f;
         private void Update()
