@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,16 +7,46 @@ using UnityEngine.UI;
 
 namespace AdOneSDK.CrossAdv
 {
+    [RequireComponent(typeof(CanvasGroup))]
     [RequireComponent(typeof(Button))]
-    public class CrossAdvImage : MonoBehaviour
+    public class CrossAdvImage : MonoBehaviour, ICrossAdPresenter
     {
         public Image img_Target;
         public Text txt_Button;
         public Text txt_Name;
         public Button btn_AdClick { get; private set; }
+        public CanvasGroup can_show { get; private set; }
+
         private void Awake()
         {
             btn_AdClick = GetComponent<Button>();
+            can_show = GetComponent<CanvasGroup>();
+            CrossAdv.OnShowAdsFailed.AddListener(OnShowAdsFailed);
+            CrossAdv.OnShowAdsSuccess.AddListener(OnShowAdsSuccess);
+
+            can_show.alpha = 0f;
+            can_show.blocksRaycasts = false;
+            can_show.interactable = false;
+        }
+
+        private void OnShowAdsSuccess(ICrossAdPresenter arg0)
+        {
+            if (arg0 == this)
+            {
+                can_show.alpha = 1f;
+                can_show.blocksRaycasts = true;
+                can_show.interactable = true;
+            }
+        }
+
+        private void OnShowAdsFailed(ICrossAdPresenter arg0)
+        {
+            if (arg0 == this)
+            {
+                can_show.alpha = 0f;
+                can_show.blocksRaycasts = false;
+                can_show.interactable = false;
+            }
         }
 
         private void Start()

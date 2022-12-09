@@ -15,6 +15,7 @@ namespace AdOneSDK.CrossAdv
 
         private static bool fetchDone;
         public static CrossAdv Instance;
+        private int showImageCount, showVideoCount;
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -34,6 +35,18 @@ namespace AdOneSDK.CrossAdv
 
             StartCoroutine(FetchMediaFiles());
         }
+
+        public static UnityEngine.Events.UnityEvent<ICrossAdPresenter> OnShowAdsFailed = new UnityEngine.Events.UnityEvent<ICrossAdPresenter>();
+        public static UnityEngine.Events.UnityEvent<ICrossAdPresenter> OnShowAdsSuccess = new UnityEngine.Events.UnityEvent<ICrossAdPresenter>();//impression
+        public static UnityEngine.Events.UnityEvent<ICrossAdPresenter> OnAdClicked = new UnityEngine.Events.UnityEvent<ICrossAdPresenter>();//ad has been clicked
+
+        private void OnDestroy()
+        {
+            OnShowAdsFailed.RemoveAllListeners();
+            OnShowAdsSuccess.RemoveAllListeners();
+            OnAdClicked.RemoveAllListeners();
+        }
+
         public void ShowImage(CrossAdvImage targetImg)
         {
             StartCoroutine(RoutineShowImage(targetImg));
@@ -50,48 +63,33 @@ namespace AdOneSDK.CrossAdv
                 yield return null;
             }
 
-            var adv = CrossAdvData[Random.Range(0, CrossAdvData.Count)];
-            string clickUrl =
-#if UNITY_ANDROID
-            $"https://play.google.com/store/apps/details?id={adv.app_key}";
-#elif UNITY_IOS
-            $"https://apps.apple.com/app/find-people/id{adv.app_key}";
-#endif
+            if (CrossAdvData == null || CrossAdvData.Count == 0)
+            {
+                OnShowAdsFailed.Invoke(targetPlayer);
+                yield break;
+            }
+            var adv = CrossAdvData[showVideoCount % CrossAdvData.Count];
+            showVideoCount++;
+            string clickUrl = adv.click_url;
+
             targetPlayer.btn_AdClick.onClick.RemoveAllListeners();
             targetPlayer.btn_AdClick.onClick.AddListener(() =>
             {
+                Debug.Log(clickUrl);
                 Application.OpenURL(clickUrl);
             });
-            bool canPlayFromRespond = false;
-            targetPlayer.player.Stop();
-            targetPlayer.player.source = VideoSource.Url;
-            switch (targetPlayer.source)
+
+            if (adv.PathVideoLocal.Count > 0)
             {
-                case VideoSource.Url:
-                    {
-                        if (adv.UrlVideoValid.Count > 0)
-                        {
-                            targetPlayer.player.url = adv.UrlVideoValid[Random.Range(0, adv.UrlVideoValid.Count)];
-                            canPlayFromRespond = true;
-                        }                           
-                    }
-                    break;
-                case VideoSource.VideoClip:
-                    {
-                        if (adv.PathVideoLocal.Count > 0)
-                        {
-                            targetPlayer.player.url = adv.PathVideoLocal[Random.Range(0, adv.PathVideoLocal.Count)];
-                            canPlayFromRespond = true;
-                        }                            
-                    }
-                    break;
-            }
-            if (canPlayFromRespond == false)
-            {
-                targetPlayer.player.source = VideoSource.VideoClip;
-                targetPlayer.player.clip = Resources.Load<VideoClip>("video_default");
-            }
-            targetPlayer.player.Play();
+                targetPlayer.player.Stop();                
+                targetPlayer.player.url = adv.PathVideoLocal[Random.Range(0, adv.PathVideoLocal.Count)];
+                targetPlayer.player.Prepare();
+            }             
+            else
+                yield break;
+
+            StartCoroutine(RecordImpression(adv.imp_url));
+            OnShowAdsSuccess.Invoke(targetPlayer);
         }
 
         IEnumerator RoutineShowImage(CrossAdvImage targetImg)
@@ -100,24 +98,55 @@ namespace AdOneSDK.CrossAdv
             {
                 yield return null;
             }
-            var adv = CrossAdvData[Random.Range(0, CrossAdvData.Count)];
-            if (adv.Sprites.Count > 0)
-                targetImg.img_Target.sprite = adv.Sprites[Random.Range(0, adv.Sprites.Count)];
-            else
-                targetImg.img_Target.sprite = Resources.Load<Sprite>("texture_default");
+
+            if (CrossAdvData == null || CrossAdvData.Count == 0)
+            {
+                OnShowAdsFailed.Invoke(targetImg);
+                yield break;
+            }
+
+            var adv = CrossAdvData[showImageCount % CrossAdvData.Count];
+            showImageCount++;
+            if (adv.Sprites.Count == 0)
+                yield break;
+
+            targetImg.img_Target.sprite = adv.Sprites[Random.Range(0, adv.Sprites.Count)];
             targetImg.txt_Button.text = adv.button_text;
             targetImg.txt_Name.text = adv.title;
-            string clickUrl =
-#if UNITY_ANDROID
-            $"https://play.google.com/store/apps/details?id={adv.app_key}";
-#elif UNITY_IOS
-            $"https://apps.apple.com/app/find-people/id{adv.app_key}";
-#endif
+            string clickUrl = adv.click_url;
             targetImg.btn_AdClick.onClick.RemoveAllListeners();
             targetImg.btn_AdClick.onClick.AddListener(() =>
             {
+                Debug.Log(clickUrl);
                 Application.OpenURL(clickUrl);
             });
+
+            StartCoroutine(RecordImpression(adv.imp_url));
+            OnShowAdsSuccess.Invoke(targetImg);
+        }
+
+        IEnumerator RecordImpression(string uri)
+        {
+            //Debug.Log($"[AdOne] Recording impression {uri}");
+            using (UnityWebRequest webRequest = UnityWebRequest.Get(uri))
+            {
+                // Request and wait for the desired page.
+                yield return webRequest.SendWebRequest();
+
+                switch (webRequest.result)
+                {
+                    case UnityWebRequest.Result.ConnectionError:
+                    case UnityWebRequest.Result.DataProcessingError:
+                        break;
+                    case UnityWebRequest.Result.ProtocolError:
+                        break;
+                    case UnityWebRequest.Result.Success:
+                        {
+                            //Debug.Log($"[AdOne] {webRequest.downloadHandler.text}");
+                        }
+                        break;
+                }
+            }
         }
 
         IEnumerator FetchMediaFiles()
@@ -138,26 +167,19 @@ namespace AdOneSDK.CrossAdv
 
             }
             string uri = $"https://api-cap.adone.net/api/v1/adv-cross?bundle={bundleId}&platform={platform}";
-
+            Debug.Log($"[AdOne] Cross Ads Fetching url: {uri}");
             using (UnityWebRequest webRequest = UnityWebRequest.Get(uri))
             {
-                // Request and wait for the desired page.
                 yield return webRequest.SendWebRequest();
-
-                string[] pages = uri.Split('/');
-                int page = pages.Length - 1;
 
                 switch (webRequest.result)
                 {
                     case UnityWebRequest.Result.ConnectionError:
                     case UnityWebRequest.Result.DataProcessingError:
-                        Debug.LogError(pages[page] + ": Error: " + webRequest.error);
                         break;
                     case UnityWebRequest.Result.ProtocolError:
-                        Debug.LogError(pages[page] + ": HTTP Error: " + webRequest.error);
                         break;
                     case UnityWebRequest.Result.Success:
-                        Debug.Log(pages[page] + ":\nReceived: " + webRequest.downloadHandler.text);
                         var respond = JsonUtility.FromJson<CrossAdvRespondModel>(webRequest.downloadHandler.text);
                         CrossAdvData = respond.data;
                         if (CrossAdvData == null || CrossAdvData.Count == 0)
@@ -227,7 +249,7 @@ namespace AdOneSDK.CrossAdv
                             break;
                         case UnityWebRequest.Result.Success:
                             {
-                                Debug.Log("Success");
+                                //Debug.Log("Success");
 
                                 string localPath = $"{Application.persistentDataPath}/AdOneCrossAdv/Video/{fileName}";
                                 File.WriteAllBytes(localPath, www.downloadHandler.data);

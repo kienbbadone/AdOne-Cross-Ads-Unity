@@ -12,6 +12,8 @@ namespace AdOneSDK.CrossAdv
         public string title;
         public string description;
         public string button_text;
+        public string click_url;
+        public string imp_url;
         public List<string> creative_video;
         public List<string> creative_image;
 
