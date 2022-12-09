@@ -25,6 +25,8 @@ namespace AdOneSDK.CrossAdv
         public List<string> UrlVideoValid = new List<string>();
         [System.NonSerialized]
         public List<Sprite> Sprites = new List<Sprite>();
+        [System.NonSerialized]
+        public List<Texture> Textures = new List<Texture>();
 
         public override string ToString()
         {

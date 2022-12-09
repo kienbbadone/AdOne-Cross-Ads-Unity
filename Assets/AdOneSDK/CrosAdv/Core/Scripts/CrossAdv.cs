@@ -47,16 +47,78 @@ namespace AdOneSDK.CrossAdv
             OnAdClicked.RemoveAllListeners();
         }
 
-        public void ShowImage(CrossAdvImage targetImg)
+        public void ShowImage(CrossAdvImageUI targetImg)
         {
             StartCoroutine(RoutineShowImage(targetImg));
         }
 
-        internal void ShowVideo(CrossAdvVideo player)
+        internal void ShowVideo(CrossAdvVideoUI player)
         {
             StartCoroutine(RoutineShowVideo(player));
         }
-        IEnumerator RoutineShowVideo(CrossAdvVideo targetPlayer)
+
+        internal void ShowVideo(CrossAdvVideoMesh player)
+        {
+            StartCoroutine(RoutineShowVideo(player));
+        }
+
+        IEnumerator RoutineShowVideo(CrossAdvVideoMesh targetPlayer)
+        {
+            while (fetchDone == false)
+            {
+                yield return null;
+            }
+
+            if (CrossAdvData == null || CrossAdvData.Count == 0)
+            {
+                OnShowAdsFailed.Invoke(targetPlayer);
+                yield break;
+            }
+            var adv = CrossAdvData[showVideoCount % CrossAdvData.Count];
+            showVideoCount++;
+
+            if (adv.PathVideoLocal.Count > 0)
+            {
+                targetPlayer.player.Stop();
+                targetPlayer.player.url = adv.PathVideoLocal[Random.Range(0, adv.PathVideoLocal.Count)];
+                targetPlayer.player.Prepare();
+            }
+            else
+                yield break;
+
+            StartCoroutine(RecordImpression(adv.imp_url));
+            OnShowAdsSuccess.Invoke(targetPlayer);
+        }
+        internal void ShowImage(CrossAdvImageMesh targetImg)
+        {
+
+            StartCoroutine(RoutineShowImage(targetImg));
+        }
+
+        IEnumerator RoutineShowImage(CrossAdvImageMesh targetImg)
+        {
+            while (fetchDone == false)
+            {
+                yield return null;
+            }
+
+            if (CrossAdvData == null || CrossAdvData.Count == 0)
+            {
+                OnShowAdsFailed.Invoke(targetImg);
+                yield break;
+            }
+
+            var adv = CrossAdvData[showImageCount % CrossAdvData.Count];
+            showImageCount++;
+            if (adv.Textures.Count == 0)
+                yield break;
+
+            targetImg.SetTexture(adv.Textures[Random.Range(0, adv.Textures.Count)]);
+
+            OnShowAdsSuccess.Invoke(targetImg);
+        }
+
+        IEnumerator RoutineShowVideo(CrossAdvVideoUI targetPlayer)
         {
             while (fetchDone == false)
             {
@@ -92,7 +154,7 @@ namespace AdOneSDK.CrossAdv
             OnShowAdsSuccess.Invoke(targetPlayer);
         }
 
-        IEnumerator RoutineShowImage(CrossAdvImage targetImg)
+        IEnumerator RoutineShowImage(CrossAdvImageUI targetImg)
         {
             while (fetchDone == false)
             {
@@ -220,6 +282,7 @@ namespace AdOneSDK.CrossAdv
                             {
                                 //Load Image
                                 Texture2D texture2d = DownloadHandlerTexture.GetContent(www);
+                                adv.Textures.Add(texture2d);
                                 var sprite = Sprite.Create(texture2d, new Rect(0, 0, texture2d.width, texture2d.height), Vector2.zero);
                                 adv.Sprites.Add(sprite);
                                 string localPath = $"{Application.persistentDataPath}/AdOneCrossAdv/Image/{fileName}";

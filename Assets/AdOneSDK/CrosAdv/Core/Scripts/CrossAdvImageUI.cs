@@ -9,7 +9,7 @@ namespace AdOneSDK.CrossAdv
 {
     [RequireComponent(typeof(CanvasGroup))]
     [RequireComponent(typeof(Button))]
-    public class CrossAdvImage : MonoBehaviour, ICrossAdPresenter
+    public class CrossAdvImageUI : MonoBehaviour, ICrossAdPresenter
     {
         public Image img_Target;
         public Text txt_Button;
